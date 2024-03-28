@@ -15,6 +15,8 @@ def spark_init(test_name) -> SparkSession:
     )
     return spark
 
+current_timestamp_utc = int(round(datetime.utcnow().timestamp()))
+
 # Чтение стрима из Kafka
 def read_adv_stream(spark: SparkSession) -> DataFrame:
     schema = StructType([
@@ -36,6 +38,7 @@ def read_adv_stream(spark: SparkSession) -> DataFrame:
         .withColumn('value', f.col('value').cast(StringType()))
         .withColumn('advert', f.from_json(f.col('value'), schema))
         .selectExpr('advert.*')
+        .where((f.col("adv_campaign_datetime_start") < current_timestamp_utc) & (f.col("adv_campaign_datetime_end") > current_timestamp_utc))
     )
     return df_adv
 
@@ -51,7 +54,7 @@ def read_user(spark: SparkSession) -> DataFrame:
     )
     return df_user
 
-current_timestamp_utc = int(round(datetime.utcnow().timestamp()))
+
 
 # джоиним стрим с акциями и статическую таблицу с юзерами
 def join(df_adv, df_user) -> DataFrame:
